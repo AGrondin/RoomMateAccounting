@@ -30,6 +30,10 @@ class DebtTable(mems: List[String]) {
     }
   }
 
+  def addDebts(payments: List[(String, Double, Option[List[String]])]):Unit ={
+    payments.foreach(x => addDebt(x._1, x._2, x._3))
+  }
+
   def addDebt(spender:Int, amount: Double, receivers: Option[List[Int]]):Unit ={
     val rec = receivers.filter(l => !l.isEmpty).getOrElse((0 to size-1).toList)
 
@@ -84,8 +88,8 @@ class DebtTable(mems: List[String]) {
   def getPaymentList(roomMates:List[(String, Double)]):List[(String,String,Double)] = {
     val (payers, receivers) = splitGroup(roomMates)
 
-    println(payers.mkString(","))
-    println(receivers.mkString(" "))
+    //println(payers.mkString(","))
+    //println(receivers.mkString(" "))
 
     getPayments(payers, receivers)
   }
@@ -107,7 +111,36 @@ class DebtTable(mems: List[String]) {
 
   }
 
+  def getTotals(entries: List[(String, Double, Option[List[String]])]): List[Double] = {
+    def mapToList(entry: (String, Double, Option[List[String]])):List[Double] = {
+
+      val borrowList = entry._3 match {
+        case Some(value) => value
+        case None => members
+      }
+
+      (0 to size-1).map(x => x match{
+                    case x if members(x)==entry._1 => -entry._2 + (entry._2 / borrowList.size.toDouble)
+                    case x if borrowList.contains(members(x)) => entry._2/borrowList.size.toDouble
+                    case _ =>0.0
+                  }).toList
+    }
+
+    val computedDebts: List[Double] = entries.map(mapToList).reduce((a,b) => {
+      val zipped = a.zip(b)
+      zipped.map(x => x._1+x._2)
+    })
+
+    computedDebts
+  }
+
+  def getDebtMapping(totals: List[Double]): List[(String, Double)] = {
+
+    members.zip(totals).toList
+  }
+
   def getDebtMapping(): List[(String, Double)] = {
+
 
     members.zip(getTotals()).toList
   }
